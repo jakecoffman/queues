@@ -18,21 +18,19 @@
   });
 
   let work = [];
-
-  function mark(item, done) {
-    item.done = done;
-    work = work.filter(t => t !== item);
-    work = work.concat(item);
-  }
+  let startTime, allDoneTime;
 
   function start() {
     setTimeout(tick, 1000)
+    startTime = new Date()
   }
 
   const lines = 2
 
   function reset() {
     let uid = 1;
+    startTime = null;
+    allDoneTime = null;
     work = [
       {id: uid++, done: false, line: 0, ticks: 2},
       {id: uid++, done: false, line: 0, ticks: 2},
@@ -48,32 +46,34 @@
   function tick() {
     for (let i=0; i<lines; i++) {
       const index = work.findIndex(item => item.line === i && !item.done)
-      if (index && work[index]) {
+      if (index > -1 && work[index]) {
         const item = work[index]
         item.ticks--
         if (item.ticks === 0) {
-          mark(work[index], true)
-        } else {
-          work[index] = item
+          item.done = true
         }
+        work[index] = item
       }
     }
 
     if (work.filter(i => !i.done).length > 0) {
       setTimeout(tick, 1000);
+    } else {
+      allDoneTime = new Date()
     }
   }
 </script>
 
-<button on:click={start}>Start</button>
-<button on:click={reset}>Reset</button>
+<button on:click={start} disabled={startTime}>Start</button>
+<button on:click={reset} disabled={!startTime}>Reset</button>
+{#if allDoneTime}{Math.floor((allDoneTime-startTime)/1000)} seconds elapsed{/if}
 
 <div class=line>
   <div>
     <h2>line 1</h2>
-    <p class="small"></p>
+    <p class="small">1 item/second</p>
       {#each work.filter(t => t.line === 0 && !t.done) as item (item.id)}
-        <label class="flex" in:receive="{{key: item.id}}" out:send="{{key: item.id}}" on:click="{() => mark(item, true)}">
+        <label class="flex" in:receive="{{key: item.id}}" out:send="{{key: item.id}}">
           <span class="flex-1">Customer {item.id}</span>
           <span>{item.ticks} left</span>
         </label>
@@ -82,8 +82,9 @@
 
   <div>
     <h2>line 2</h2>
+    <p class="small">1 item/second</p>
       {#each work.filter(t => t.line === 1 && !t.done) as item (item.id)}
-        <label class="flex" in:receive="{{key: item.id}}" out:send="{{key: item.id}}" on:click="{() => mark(item, true)}">
+        <label class="flex" in:receive="{{key: item.id}}" out:send="{{key: item.id}}">
           <span class="flex-1">Customer {item.id}</span>
           <span>{item.ticks} left</span>
         </label>
@@ -94,7 +95,7 @@
 <div class="dones">
 <h2>done</h2>
 {#each work.filter(t => t.done) as item (item.id)}
-  <label class="done" in:receive="{{key: item.id}}" out:send="{{key: item.id}}" on:click="{() => mark(item, false)}">
+  <label class="done" in:receive="{{key: item.id}}" out:send="{{key: item.id}}">
     <span class="flex-1">Customer {item.id}</span>
   </label>
 {/each}
@@ -151,5 +152,9 @@
 
   .flex-1 {
     flex-grow: 1;
+  }
+
+  .small {
+    font-size: .85rem;
   }
 </style>
